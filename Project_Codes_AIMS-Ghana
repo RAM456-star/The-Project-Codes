@@ -1,0 +1,333 @@
+####Creation Of the SVM in Chaper 3 Section 3.2####
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn import svm
+
+# Create an arbitrary dataset
+np.random.seed(0)
+X = np.r_[np.random.randn(20, 2) - [2, 2], np.random.randn(20, 2) + [2, 2]]
+Y = [0] * 20 + [1] * 20
+
+# Fit the SVM model
+clf = svm.SVC(kernel='linear', C=1)
+clf.fit(X, Y)
+
+# Get the separating hyperplane
+w = clf.coef_[0]
+a = -w[0] / w[1]
+xx = np.linspace(-5, 5)
+yy = a * xx - (clf.intercept_[0]) / w[1]
+
+# Plot the parallels to the separating hyperplane that pass through the support vectors
+margin = 1 / np.sqrt(np.sum(clf.coef_ ** 2))
+yy_down = yy + a * margin
+yy_up = yy - a * margin
+
+# Plot the results
+plt.scatter(X[:, 0], X[:, 1], c=Y, cmap=plt.cm.Paired)
+plt.plot(xx, yy, 'k-')
+plt.plot(xx, yy_down, 'k--')
+plt.plot(xx, yy_up, 'k--')
+
+# Highlight the support vectors
+plt.scatter(clf.support_vectors_[:, 0], clf.support_vectors_[:, 1], s=100, facecolors='none', edgecolors='k')
+
+plt.title("SVM Linear Classifier")
+plt.xlabel("Feature 1")
+plt.ylabel("Feature 2")
+plt.xlim(-5, 5)
+plt.ylim(-5, 5)
+plt.show()
+
+
+
+
+####Scatter Plot and model trend line in Chapter 4 Section 4.1####
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn import svm
+
+# Create an arbitrary dataset
+np.random.seed(0)
+X = np.r_[np.random.randn(20, 2) - [2, 2], np.random.randn(20, 2) + [2, 2]]
+Y = [0] * 20 + [1] * 20
+
+# Fit the SVM model
+clf = svm.SVC(kernel='linear', C=1)
+clf.fit(X, Y)
+
+# Get the separating hyperplane
+w = clf.coef_[0]
+a = -w[0] / w[1]
+xx = np.linspace(-5, 5)
+yy = a * xx - (clf.intercept_[0]) / w[1]
+
+# Plot the parallels to the separating hyperplane that pass through the support vectors
+margin = 1 / np.sqrt(np.sum(clf.coef_ ** 2))
+yy_down = yy + a * margin
+yy_up = yy - a * margin
+
+# Plot the results
+plt.scatter(X[:, 0], X[:, 1], c=Y, cmap=plt.cm.Paired)
+plt.plot(xx, yy, 'k-')
+plt.plot(xx, yy_down, 'k--')
+plt.plot(xx, yy_up, 'k--')
+
+# Highlight the support vectors
+plt.scatter(clf.support_vectors_[:, 0], clf.support_vectors_[:, 1], s=100, facecolors='none', edgecolors='k')
+
+plt.title("SVM Linear Classifier")
+plt.xlabel("Feature 1")
+plt.ylabel("Feature 2")
+plt.xlim(-5, 5)
+plt.ylim(-5, 5)
+plt.show()
+
+
+
+
+####The linear Regression model in Chapter 4####
+import numpy as np
+from sklearn.linear_model import LinearRegression
+
+Temperature = np.array([0, 10, 20, 25, 30,40,50,100]).reshape(-1, 1)  # Reshape to a column vector
+pH = np.array([7.47,7.27, 7.08,7.00,6.92,6.77,6.63,6.14])
+
+#fitting model
+model = LinearRegression()
+
+model.fit(Temperature, pH)
+
+print("Intercept:", model.intercept_)
+print("Coefficient:", model.coef_[0])
+
+#Prediction
+new_temperature = [[15]]  
+predicted_pH = model.predict(new_temperature)
+print("Predicted pH at 15 Degrees Celcius:", predicted_pH[0])
+
+
+
+
+####The quadratic loss function and the residuals####
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Data
+x1 = np.array([10,10.5,11,11.5,11.8,12.0,12.3,12.5,13,13.5,14,14.5,15,15.5,16,16.5,17,17.5,18,18.5,19,19.5,20,20.5,21,21.5,22])
+y1 = np.array([28,29,23,21,20,26,27,18,25,23,38,35,32,40,43,46,49,57,52,61,59,68,65,68,75,70,73])
+
+# Perform linear regression
+coefficients_linear = np.polyfit(x1, y1, 1)
+line_linear = np.poly1d(coefficients_linear)
+x_values_linear = np.linspace(min(x1), max(x1), 100)
+y_values_linear = line_linear(x_values_linear)
+
+# Calculate losses and squared losses
+losses = y1 - line_linear(x1)
+squared_losses = losses ** 2
+
+# Fit a quadratic curve
+coefficients_quadratic = np.polyfit(losses, squared_losses, 2)
+line_quadratic = np.poly1d(coefficients_quadratic)
+x_values_quadratic = np.linspace(min(losses), max(losses), 100)
+y_values_quadratic = line_quadratic(x_values_quadratic)
+
+# Plot both plots side by side
+fig, axs = plt.subplots(1, 2, figsize=(14, 6))
+
+# Plot linear regression and vertical distances
+axs[0].scatter(x1, y1, color='blue', label='Data')
+axs[0].plot(x_values_linear, y_values_linear, color='red', label='Linear Regression')
+
+# Calculate and plot vertical distances
+for x, y in zip(x1, y1):
+    axs[0].plot([x, x], [y, line_linear(x)], color='green', linestyle='--')
+
+axs[0].set_xlabel('X')
+axs[0].set_ylabel('Y')
+axs[0].set_title('Linear Regression and Vertical Distances')
+axs[0].legend()
+#axs[0].grid(True)
+
+# Plot squared losses against losses
+axs[1].plot(losses, squared_losses, 'bo', label='Squared Losses')
+axs[1].plot(x_values_quadratic, y_values_quadratic, 'r-', label='Quadratic Curve')
+
+axs[1].set_xlabel('Losses')
+axs[1].set_ylabel('Squared Losses')
+axs[1].set_title('Squared Losses vs. Losses')
+axs[1].legend()
+# axs[1].grid(True)  # Uncomment this line if you want to show grid
+
+plt.tight_layout()
+plt.show()
+
+
+
+
+
+####Linear model on hypothetical data in Chapter 4 Section 4.3####
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression
+
+# Fix the random seed for reproducibility
+np.random.seed(42)
+
+# Generate 20 random x values in the range [-2, 3]
+x_values = np.random.uniform(-2, 3, 20)
+
+# Generate corresponding y values with noise term epsilon
+epsilon = np.random.uniform(-1, 2, 20)
+y_values = 3 + 4 * x_values + epsilon
+
+# Scatter plot with regression and population lines
+plt.figure(figsize=(14, 6))
+plt.subplot(1, 2, 1)
+
+# Scatter plot
+plt.scatter(x_values, y_values, label='Data Points')
+
+# Population line y = 3 + 4x
+population_line = 3 + 4 * x_values
+plt.plot(x_values, population_line, color='red', label='Population Line (y = 3 + 4x)')
+
+# Regression line
+model = LinearRegression()
+model.fit(x_values.reshape(-1, 1), y_values)
+regression_line = model.predict(x_values.reshape(-1, 1))
+plt.plot(x_values, regression_line, color='green', label='Regression Line')
+
+plt.xlabel('X values')
+plt.ylabel('Y values')
+plt.legend()
+#plt.grid(True)
+
+# Regression and population lines with additional regression lines
+plt.subplot(1, 2, 2)
+
+# Plotting the population line and original regression line
+plt.plot(x_values, population_line, color='red', label='Population Line (y = 3 + 4x)')
+plt.plot(x_values, regression_line, color='green', label='Original Regression Line')
+
+# Adding three more regression lines
+for i in range(3):
+    intercept = np.random.uniform(0, 5)
+    gradient = np.random.uniform(3, 5)
+    additional_regression_line = intercept + gradient * x_values
+    plt.plot(x_values, additional_regression_line, label=f'Regression Line {i+1}')
+
+plt.xlabel('X values')
+plt.ylabel('Y values')
+plt.legend()
+#plt.grid(True)
+
+plt.tight_layout()
+plt.show()
+
+
+
+
+####Code for p-values and t-statistics table Chapter 4 section4.3####
+import numpy as np
+import pandas as pd
+import statsmodels.api as sm
+Temperature = np.array([0, 10, 20, 25, 30, 40, 50, 100]).reshape(-1, 1)  # Reshape to a column vector
+pH = np.array([7.47, 7.27, 7.08, 7.00, 6.92, 6.77, 6.63, 6.14])
+
+# Convert the data to a DataFrame
+data = pd.DataFrame({
+    'Temperature': Temperature.flatten(),  # Convert column vector to a 1D array
+    'pH': pH
+})
+
+X = data['Temperature']
+Y = data['pH']
+
+# Add a constant to the independent variables matrix (required for the intercept term)
+X = sm.add_constant(X)
+
+# Create the linear regression model
+model = sm.OLS(Y, X)
+
+# Fit the model to the data
+results = model.fit()
+
+# Summarize the coefficients, standard errors, t-statistics, and p-values
+summary_table = pd.DataFrame({
+    'Coefficient': results.params,
+    'Standard Error': results.bse,
+    't-Statistic': results.tvalues,
+    'p-Value': results.pvalues
+})
+
+# Display the summary table
+print(summary_table)
+
+
+
+
+####RSE and R-squared values in Section 4.4####
+import numpy as np
+import statsmodels.api as sm
+
+# Data
+Temperature = np.array([0, 10, 20, 25, 30, 40, 50, 100]).reshape(-1, 1)  # Reshape to a column vector
+pH = np.array([7.47, 7.27, 7.08, 7.00, 6.92, 6.77, 6.63, 6.14])
+
+# Add a constant to the independent variable (for the intercept)
+Temperature = sm.add_constant(Temperature)
+
+# Create the model and fit it
+model = sm.OLS(pH, Temperature).fit()
+
+# Extract the residual standard error and R-squared value
+residual_standard_error = np.sqrt(model.mse_resid)
+r_squared = model.rsquared
+
+# Create a DataFrame for the results
+results_df = pd.DataFrame({
+    'Residual Standard Error': [residual_standard_error],
+    'R-squared': [r_squared]
+})
+
+# Print the DataFrame
+print(results_df.to_string(index=False))
+
+
+
+
+#### Multiple linear regression task in section 5.2####
+import numpy as np
+from sklearn.linear_model import LinearRegression
+
+# Define the features (error term, temp,conductivity , mileage) and output (price) data
+features = np.array([
+    [1,0,0.1162 ,0.114 ],
+    [1,10, 2.312,0.293],
+    [1,20, 4.205,0.681],
+    [1,25, 5.512,1.008],
+    [1, 30,7.105,1.471],
+    [1,40,11.298,2.916],
+    [1,50,17.071,5.476],
+    [1,100,7.697,51.300]
+    
+    
+])
+pH = np.array([7.47, 7.27, 7.08,7.00,6.92,6.77,6.73,6.14])
+
+# Create a linear regression model
+model = LinearRegression()
+
+# Fit the model to the data
+model.fit(features, pH)
+
+# Print the coefficients
+print("Intercept:", model.intercept_)
+print("Coefficients:", model.coef_)
+
+# Predict pH for a new set of features
+new_features = np.array([[1, 15, 4.833, 0.895]])  
+predicted_pH = model.predict(new_features)
+print("Predicted pH:", predicted_pH[0])
