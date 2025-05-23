@@ -1,0 +1,138 @@
+# Creating the model, training and evaluation code
+
+import numpy as np
+import matplotlib.pyplot as plt
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+#Set seed for reproducibility
+np.random.seed(0)
+torch.manual_seed(0)
+
+# Parameters
+d = 200          # Input dimension
+k = 4           # Hidden units
+a=2
+n = a * k*d       # Increase number of samples for better train/test split
+test_ratio = 0.2
+
+# Generate teacher weights and data
+W_teacher = np.random.randn(d, k)
+X = np.random.randn(n, d)
+
+# Modified teacher network with tanh activation
+hidden_outputs = np.tanh(X @ W_teacher)  # Changed from sign to tanh
+Y = np.sign(np.sum(hidden_outputs, axis=1))  # Keep binary labels
+
+# Convert labels to {0,1} for BCE loss/ Binary cross entropy
+Y_bin = ((Y + 1) // 2).reshape(-1, 1)
+
+# Train/test split with shuffling
+indices = np.random.permutation(n)
+split = int(n * (1 - test_ratio))
+X_train, X_test = X[indices[:split]], X[indices[split:]]
+Y_train, Y_test = Y_bin[indices[:split]], Y_bin[indices[split:]]
+
+# Convert to torch tensors
+X_train_tensor = torch.tensor(X_train, dtype=torch.float32)
+Y_train_tensor = torch.tensor(Y_train, dtype=torch.float32)
+X_test_tensor = torch.tensor(X_test, dtype=torch.float32)
+Y_test_tensor = torch.tensor(Y_test, dtype=torch.float32)
+
+# Student with similar architecture
+class StudentNet(nn.Module):                       # Defines a new neural network class called StudentNet, which inherits from nn.Module, the base class for all neural networks in PyTorch
+    def __init__(self, d, k):                      # Constructor method to initializes the neural network's architecture.
+        super(StudentNet, self).__init__()         # constructor of the parent class nn.Module, allowing the model to inherit all PyTorch functionality like .parameters() and .to(device)
+        self.fc1 = nn.Linear(d, k)                 # This creates the first fully connected (linear) layer, which takes an input of size d and outputs a vector of size k
+        self.act = nn.Tanh()                       # Sets the activation function for the hidden layer to tanh, which squashes the output between -1 and 1
+        self.fc2 = nn.Linear(k, 1)                 # Defines the second linear layer, taking input of size k from the hidden layer and producing a single output (for binary classification)
+
+    def forward(self, x):                          # Define how data flows through the network.
+        x = self.act(self.fc1(x))                  # Apply the first linear layer to our input and the apply the tanh activation function.
+        return torch.sigmoid(self.fc2(x))
+
+model = StudentNet(d, k)
+loss_fn = nn.BCELoss()                                        # Distance between predicted probabilities and the true labels
+optimizer = optim.SGD(model.parameters(), lr=0.1)             # passes all the learnable weights, lr= learning rate
+
+# Training loop with test evaluation
+epochs = 100
+checkpoints = []                                             # Store snapshots of the model's weights at certain epochs.
+train_loss_history = []                                      # We store the training loss and accuracy.
+train_acc_history = []
+test_loss_history = []
+test_acc_history = []
+
+for epoch in range(epochs):
+    # Training phase
+    model.train()                                      # Sets the model to training mode, so that such layers function correctly.
+    optimizer.zero_grad()                              # Clear the gradients from the previous iteration.
+    outputs = model(X_train_tensor)
+    loss = loss_fn(outputs, Y_train_tensor)
+    loss.backward()
+    optimizer.step()                                  # Update the model parameters using the gradients calculated during backpropagation
+
+    with torch.no_grad():                             # Disables gradient tracking to speed up computation.
+        # Track metrics
+        train_preds = (outputs > 0.5).float()                                  # Convert  probabilities to binary class predictions (0 or 1)
+        train_acc = (train_preds == Y_train_tensor).float().mean().item()      # Compares the predicted labels to the true training labels
+        test_outputs = model(X_test_tensor)
+        test_loss = loss_fn(test_outputs, Y_test_tensor).item()                # .item() extracts the scalar value from the loss tensor
+        test_preds = (test_outputs > 0.5).float()
+        test_acc = ((test_outputs > 0.5).float() == Y_test_tensor).float().mean().item()
+
+        # Track every 10 epochs
+        if epoch % 10 == 0:
+              torch.save(model.state_dict(), f"checkpoint_epoch_{epoch}.pt")
+             #H = model.act(model.fc1(X_train_tensor)).numpy()                   # We obtain the activated neuron representation of training data.    # .numpy() converts the tensor to a NumPy array
+              checkpoints.append(epoch)
+
+    # Store history
+    train_loss_history.append(loss.item())
+    train_acc_history.append(train_acc)
+    test_loss_history.append(test_loss)
+    test_acc_history.append(test_acc)
+
+# Final metrics
+print(f"Final Training Accuracy: {train_acc_history[-1] * 100:.2f}%")
+print(f"Final Test Accuracy: {test_acc_history[-1] * 100:.2f}%")
+
+
+# Store weight overlaps every 10 epochs
+Wi_logs = []  # To store student weights at intervals
+Si_logs = []  # To store overlap matrices
+epochs_to_log = []
+
+for epoch in checkpoints:
+    # Re-run model up to this epoch to get fc1 weights
+    model_at_epoch = StudentNet(d, k)
+    model_at_epoch.load_state_dict(torch.load(f"checkpoint_epoch_{epoch}.pt"))
+    Wi = model_at_epoch.fc1.weight.detach().numpy().T  # shape: (d, k)
+    Si = (W_teacher.T @ Wi) / d                        # shape: (k, k)
+
+    Wi_logs.append(Wi)
+    Si_logs.append(Si ** 2)
+    epochs_to_log.append(epoch)
+
+# Plot results
+plt.figure(figsize=(12, 5))
+plt.subplot(1, 2, 1)
+plt.plot(train_loss_history, label='Train')
+plt.plot(test_loss_history, label='Test')
+plt.title('Loss Evolution')
+plt.xlabel('Epoch')
+plt.ylabel('BCE Loss')
+plt.legend()
+
+#Plotting
+plt.subplot(1, 2, 2)
+plt.plot(train_acc_history, label='Train')
+plt.plot(test_acc_history, label='Test')
+plt.title('Accuracy Evolution')
+plt.xlabel('Epoch')
+plt.ylabel('Accuracy')
+plt.legend()
+plt.tight_layout()
+plt.show()
+
