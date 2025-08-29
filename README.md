@@ -1,2 +1,2 @@
 Hi, I am Alinda Rolland Mucunguzi, a current student student at ICTP-Trieste, Italy.
-Let's Speak about machine learning.
+Let's Speak about mathematics, data analysis, machine learning, AI and the life sciences.
